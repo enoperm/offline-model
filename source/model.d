@@ -167,20 +167,11 @@ auto minimalPartitioning(ErrorGraph g, size_t queueCount) @trusted pure
 in(queueCount > 0, "zero queues?")
 {
     import std.range: iota, retro;
-    import std.algorithm: canFind, reverse;
+    import std.algorithm: canFind, reverse, min;
+    import std.conv: to;
 
     const k = g.adjacencyMatrix.shape[0];
-
-    if(queueCount >= k) {
-        // we have enough queues to dedicate one to each packet class,
-        // nothing to do.
-        auto indices = iota(0, k + 1);
-        return
-            indices
-            .zip(indices.dropOne)
-            .map!(t => Queue(t[0], t[1]))
-            .array;
-    }
+    queueCount = min(k - 1, queueCount);
 
     auto distance = new double[][](k, k);
     Optional!size_t[][] preceeding = new Optional!size_t[][](k, k);
@@ -264,27 +255,25 @@ unittest {
         .map!(n => eg.minimalPartitioning(n).array)
         .array;
 
-    version(none) debug {
-        import std.stdio;
+    version(none)
+    debug {
+        import std;
         partitionings.map!(p => p.map!(to!string).join('\n') ~ " `> " ~ u(p).to!string).join("\n----\n").writeln;
     }
 
-    auto i = 3;
     assert(
-        partitionings[i] ==
+        partitionings ==
         [
             // lower error rates as queue counts go up...
             [Queue(0, 4)],
             [Queue(0, 3), Queue(3, 4)],
             [Queue(0, 1), Queue(1, 3), Queue(3, 4)],
 
-            // due to packet probabilities, more queues does not help this case
+            // due to packet probabilities, more queues does not help anymore.
             [Queue(0, 1), Queue(1, 3), Queue(3, 4)],
-
-            // if we have at least as many queues as ranks, the solution is trivial
-            [Queue(0, 1), Queue(1, 2), Queue(2, 3), Queue(3, 4)],
-            [Queue(0, 1), Queue(1, 2), Queue(2, 3), Queue(3, 4)],
-        ][i]
+            [Queue(0, 1), Queue(1, 3), Queue(3, 4)],
+            [Queue(0, 1), Queue(1, 3), Queue(3, 4)],
+        ]
     );
 }
 
