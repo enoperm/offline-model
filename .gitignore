@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/compare_fw
+compare_fw.so
+compare_fw.dylib
+compare_fw.dll
+compare_fw.a
+compare_fw.lib
+compare_fw-test-*
+*.exe
+*.o
+*.obj
+*.lst

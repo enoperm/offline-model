@@ -1,0 +1,14 @@
+{
+	"authors": [
+		"sarkadicsa"
+	],
+	"copyright": "Copyright © 2021, sarkadicsa",
+	"dependencies": {
+		"mir-algorithm": "~>3.10.19",
+		"optional": "~>1.2.0",
+		"silly": "~>1.1.1"
+	},
+	"description": "A minimal D application.",
+	"license": "AGPLv3",
+	"name": "compare_fw"
+}
