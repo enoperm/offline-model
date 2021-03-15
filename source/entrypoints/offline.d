@@ -10,6 +10,7 @@ enum Exit {
     NotEnoughWeights,
 }
 
+version(offline_model)
 int main(string[] args) {
     if(args[1..$].length < 2) {
         stderr.writeln(
@@ -41,7 +42,7 @@ int main(string[] args) {
     
     assert(rank_probabilities.length > 0);
 
-    alias errors = getSymbolsByUDA!(ErrorEstimation, error);
+    alias errors = getSymbolsByUDA!(ErrorEstimation, ErrorKind);
 
     static errorNames = () {
         string[errors.length] names;
@@ -57,9 +58,13 @@ int main(string[] args) {
     minMaxValues[] = real.max;
 
     static foreach(i, efn; errors) {{
+        enum errorKind = getUDAs!(efn, ErrorKind)[$-1];
+        enum accumulationFunction = errorKind.accumulator;
+
         auto u = withProbabilities(&efn, rank_probabilities);
         auto eg = ErrorGraph(rank_probabilities.length, u);
-        minPartitions[i] = eg.minimalPartitioning(queue_count).array;
+
+        minPartitions[i] = eg.minimalPartitioning!(accumulationFunction)(queue_count).array;
         minMaxValues[i] = u(minPartitions[i]);
     }}
 
@@ -127,11 +132,13 @@ int main(string[] args) {
         writefln("-----------------------\n"
                ~ "sim result %s // partitioning chosen by %s\n"
                ~ "    queues: %s\n"
+               ~ "    total inversions: %s\n"
                ~ "    inversions per queue (per packet):%s\n"
                ~ "    received per queue (per packet):%s\n",
 
                 i, errorNames[i],
                 minPartitions[i].map!(p => p.toString).join(' '),
+                simState.inversions.sum,
                 inversionsReport,
                 receivedReport
         );

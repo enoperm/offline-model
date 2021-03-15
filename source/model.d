@@ -163,7 +163,11 @@ unittest {
     assert(pathsFromOne.to(4) == some(2.0));
 }
 
-auto minimalPartitioning(ErrorGraph g, size_t queueCount) @trusted pure
+auto minimalPartitioning(ErrorGraph g, size_t queueCount) @trusted pure {
+    return minimalPartitioning!((s, n) => s + n)(g, queueCount);
+}
+
+auto minimalPartitioning(alias accumulate)(ErrorGraph g, size_t queueCount) @trusted pure
 in(queueCount > 0, "zero queues?")
 {
     import std.range: iota, retro;
@@ -191,7 +195,7 @@ in(queueCount > 0, "zero queues?")
             auto sn = g.from(s);
             auto destinations = iota(s + 1, k);
             foreach(d; destinations) {
-                auto td = distance[step-1][s] + sn.to(d).front;
+                auto td = accumulate(distance[step-1][s], sn.to(d).front);
                 if(td < distance[step][d]) {
                     distance[step][d] = td;
                     preceeding[step][d] = s;

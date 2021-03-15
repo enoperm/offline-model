@@ -1,5 +1,6 @@
 module errors;
 
+import std.traits;
 import std.range;
 import std.algorithm;
 import std.functional;
@@ -8,26 +9,20 @@ import model;
 
 public:
 
-enum error;
 alias ErrorFunction = double function(const(double[]) rank_probabilities, const(Queue[]) partitioning) pure;
 alias ErrorDelegate = double delegate(const(Queue[]) partitioning) pure;
 
-private template isErrorFunction(F) {
-    enum isErrorFunction = is(F == ErrorFunction);
-}
-
-private template overloadsOf(holder, string fname) {
-    alias overloadsOf = __traits(getOverloads, holder, fname);
-}
+enum ErrorKind {
+    Additive,
+    Max
+};
 
 struct ErrorEstimation {
 public:
     @disable this();
 
 static @safe pure:
-
-    version(currently_not_applicable_to_dag_based_partitioning)
-    @error
+    @(ErrorKind.Additive)
     auto per_queue_maximum(const(double[]) rank_probabilities, const(Queue[]) partitioning) {
         return
             partitioning
@@ -35,12 +30,18 @@ static @safe pure:
             .fold!((a, b) => max(a, b));
     }
 
-    @error
+    @(ErrorKind.Max)
     auto global_maximum(const(double[]) rank_probabilities, const(Queue[]) partitioning) {
         return
             partitioning
             .map!(b => rank_probabilities[b.lower .. b.upper - 1].sum * b.width)
             .sum;
     }
+}
 
+double function(double, double) accumulator(ErrorKind k) pure @safe {
+    final switch(k) with(ErrorKind) {
+    case Additive: return (a, b) => a + b;
+    case Max: return (a, b) => max(a, b);
+    }
 }
