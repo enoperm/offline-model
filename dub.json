@@ -2,38 +2,41 @@
 	"authors": [
 		"sarkadicsa"
 	],
+	"configurations": [
+		{
+			"name": "default",
+			"preGenerateCommands": [
+				"echo \"Please specify a build configuration (see 'dub build --print-configs')\"",
+				"exit 1"
+			],
+			"targetName": "/dev/null",
+			"targetType": "none"
+		},
+		{
+			"name": "offline-model",
+			"targetName": "offline-model",
+			"targetType": "executable",
+			"versions": [
+				"offline_model"
+			]
+		},
+		{
+			"name": "online-model",
+			"targetName": "online-model",
+			"targetType": "executable",
+			"versions": [
+				"online_model"
+			]
+		}
+	],
 	"copyright": "Copyright © 2021, sarkadicsa",
 	"dependencies": {
+		"asdf": "~>0.7.5",
 		"mir-algorithm": "~>3.10.19",
 		"optional": "~>1.2.0",
 		"silly": "~>1.1.1"
 	},
 	"description": "A minimal D application.",
 	"license": "AGPLv3",
-	"name": "compare_fw",
-    "configurations": [
-        {
-            "name": "default",
-            "targetName": "/dev/null",
-            "targetType": "none",
-            "preGenerateCommands": [
-                "echo \"Please specify a build configuration (see 'dub build --print-configs')\"",
-                "exit 1"
-            ]
-        },
-
-        {
-            "name": "offline-model",
-            "targetName": "offline-model",
-            "targetType": "executable",
-            "versions": ["offline_model"]
-        },
-
-        {
-            "name": "online-model",
-            "targetName": "online-model",
-            "targetType": "executable",
-            "versions": ["online_model"]
-        }
-    ]
+	"name": "compare_fw"
 }

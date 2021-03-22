@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-set -e
+#!/usr/bin/env bash
+set -ex -o pipefail
 
 cd "$(dirname "$(readlink -f "${0}")")"
 
