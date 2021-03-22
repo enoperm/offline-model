@@ -1,4 +1,5 @@
-module model;
+module model.offline;
+public import model.common;
 
 import std.range;
 
@@ -9,32 +10,6 @@ import errors;
 
 public:
 @safe pure:
-
-struct SimState {
-    ulong[] inversions;
-    ulong[] lastInQueue;
-    ulong[] received;
-
-    this(size_t queue_count) {
-        static foreach(fname; __traits(allMembers, typeof(this))) {{
-            alias f = __traits(getMember, this, fname);
-            alias T = typeof(f);
-            static if(__traits(compiles, new T(queue_count))) f = new T(queue_count);
-        }}
-    }
-}
-
-struct Queue {
-immutable {
-    ulong lower;
-    ulong upper;
-}
-
-    string toString() const {
-        import std.string: format;
-        return format!"[%2s, %2s)"(this.lower, this.upper);
-    }
-}
 
 ErrorDelegate withProbabilities(ErrorFunction efn, double[] rank_probabilities) {
     return partitioning => efn(rank_probabilities, partitioning);
@@ -259,12 +234,6 @@ unittest {
         .map!(n => eg.minimalPartitioning(n).array)
         .array;
 
-    version(none)
-    debug {
-        import std;
-        partitionings.map!(p => p.map!(to!string).join('\n') ~ " `> " ~ u(p).to!string).join("\n----\n").writeln;
-    }
-
     assert(
         partitionings ==
         [
@@ -280,4 +249,3 @@ unittest {
         ]
     );
 }
-

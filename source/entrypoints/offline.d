@@ -1,46 +1,19 @@
+module entrypoints.offline;
+
+version(offline_model):
+
 import std;
 import std.regex: splitter;
 
 import model;
 import errors;
 
-enum Exit {
-    Ok,
-    NotEnoughArgs,
-    NotEnoughWeights,
-}
-
-version(offline_model)
-int main(string[] args) {
-    if(args[1..$].length < 2) {
-        stderr.writeln(
-            `usage: sp_pifo weight[,weight]* number-of-queues [simulated-packet-count]`
-        );
-        return Exit.NotEnoughArgs;
-    }
-
-    auto relative_weights =
-        args[1]
-        .splitter(`[\s,]+`.regex)
-        .map!(to!ulong)
-        .array;
-
-    if(relative_weights.empty) {
-        stderr.writeln(`must pass at least one weight`);
-        return Exit.NotEnoughWeights;
-    }
-
-    auto total_weight = sum(relative_weights);
-    auto rank_probabilities = relative_weights.map!(w => w.to!double / total_weight).array;
-
-    auto queue_count = args[2].to!ulong;
-
-    auto sim_packet_count = args[3..$].empty ? 0 : args[3].to!int;
+void entrypoint(ModelContext context) {
     auto incoming =
-        packets(rank_probabilities)
-        .take(sim_packet_count);
+        packets(context.rankDistribution)
+        .take(context.packetCount);
     
-    assert(rank_probabilities.length > 0);
+    assert(context.rankDistribution.length > 0);
 
     alias errors = getSymbolsByUDA!(ErrorEstimation, ErrorKind);
 
@@ -61,10 +34,10 @@ int main(string[] args) {
         enum errorKind = getUDAs!(efn, ErrorKind)[$-1];
         enum accumulationFunction = errorKind.accumulator;
 
-        auto u = withProbabilities(&efn, rank_probabilities);
-        auto eg = ErrorGraph(rank_probabilities.length, u);
+        auto u = withProbabilities(&efn, context.rankDistribution);
+        auto eg = ErrorGraph(context.rankDistribution.length, u);
 
-        minPartitions[i] = eg.minimalPartitioning!(accumulationFunction)(queue_count).array;
+        minPartitions[i] = eg.minimalPartitioning!(accumulationFunction)(context.queueCount).array;
         minMaxValues[i] = u(minPartitions[i]);
     }}
 
@@ -80,45 +53,33 @@ int main(string[] args) {
                     minPartitions[i].map!(q => q.toString).join('~'),
                     minPartitions[i].map!(q =>
                         iota(q.lower, q.upper)
-                        .map!(p => rank_probabilities[p])
+                        .map!(p => context.rankDistribution[p])
                         .sum
                     ),
-                    minPartitions[i].map!(queue => efn(rank_probabilities, [queue])),
+                    minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])),
                     minMaxValues[i]
         );
     }}
 
     SimState[errors.length] state;
-    foreach(ref s; state) s = SimState(queue_count);
+    foreach(ref s; state) s = SimState(context.queueCount);
     ulong[ulong] packetCounts;
-
-    void receive(ref SimState state, Queue[] partitioning, ulong packet) pure @safe
-    in(partitioning.length > 0)
-    {
-        auto q = partitioning.countUntil!(b => b.lower <= packet && b.upper > packet);
-        q = q < 0 ? partitioning.length - 1 : q;
-
-        with(state) {
-            auto inversionHappened = received[q] > 0 && packet > state.lastInQueue[q];
-            inversions[q] += inversionHappened ? 1 : 0;
-            lastInQueue[q] = packet;
-            received[q] += 1;
-        }
-    }
 
     foreach(packet; incoming) {
         packetCounts[packet] += 1;
-        foreach(i, q; minPartitions) receive(state[i], q, packet);
+        foreach(i, q; minPartitions) {
+            state[i] = state[i].receivePacket(minPartitions[i], packet);
+        }
     }
 
-    if(sim_packet_count > 0)
+    if(context.packetCount > 0)
     foreach(i, simState; state) {
         auto formatQueueList(T)(T aaRange) {
             return
                 aaRange
                 .map!(t =>
                         format!"\n\t\t% 2s => %-5d\t(%-01.03s)"(
-                            minPartitions[i][t.index].toString, t.value, t.value.to!double / sim_packet_count
+                            minPartitions[i][t.index].toString, t.value, t.value.to!double / context.packetCount
                         )
                 )
                 .array
@@ -143,8 +104,6 @@ int main(string[] args) {
                 receivedReport
         );
     }
-
-    return Exit.Ok;
 }
 
 version(none)
@@ -167,24 +126,4 @@ in(count > 0)
         }
     }).inputRangeObject;
     return cast(typeof(return))outer;
-}
-
-auto packets(const(double[]) probabilities) {
-    auto mins =
-        probabilities
-        .enumerate
-        .map!(t => t.index)
-        .map!(i => probabilities[0..i].sum)
-        .array;
-
-    auto selector =
-        mins
-        .zip(mins[1..$].chain(1.0.only))
-        .enumerate;
-
-    return generate!(() {
-        const random = uniform01();
-        foreach(p, bounds; selector) if(bounds[0] <= random && bounds[1] >= random) return p;
-        assert(false);
-    });
 }
