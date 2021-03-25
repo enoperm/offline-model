@@ -34,7 +34,11 @@ immutable {
         return format!"[%2s, %2s)"(this.lower, this.upper);
     }
 
-    invariant { assert(lower < upper); }
+    version(none)
+    invariant {
+        import std.string: format;
+        assert(lower < upper, format!`[%s, %s)`(lower, upper));
+    }
 }
 
 struct ModelContext {
@@ -70,7 +74,7 @@ auto packets(const(double[]) probabilities) {
 
 auto lookup(const(Queue[]) queues, const(ulong) rank)
 in(queues.length > 0)
-in(queues.front.lower == 0)
+//in(queues.front.lower == 0)
 out(index; index.empty || index.front < queues.length && index.front >= 0)
 out(index; index.empty || queues[index.front].lower <= rank && queues[index.front].upper > rank)
 {
