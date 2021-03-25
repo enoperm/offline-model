@@ -89,17 +89,18 @@ void entrypoint(ModelContext context) {
 
         auto inversionsReport = formatQueueList(simState.inversions.enumerate);
         auto receivedReport = formatQueueList(simState.received.enumerate);
+        auto totalInversions = simState.inversions.sum;
 
         writefln("-----------------------\n"
                ~ "sim result %s // partitioning chosen by %s\n"
                ~ "    queues: %s\n"
-               ~ "    total inversions: %s\n"
+               ~ "    total inversions: %s (%s)\n"
                ~ "    inversions per queue (per packet):%s\n"
                ~ "    received per queue (per packet):%s\n",
 
                 i, errorNames[i],
                 minPartitions[i].map!(p => p.toString).join(' '),
-                simState.inversions.sum,
+                totalInversions, totalInversions.to!double / context.packetCount,
                 inversionsReport,
                 receivedReport
         );
