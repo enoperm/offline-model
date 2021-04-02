@@ -2,33 +2,6 @@
 	"authors": [
 		"sarkadicsa"
 	],
-	"configurations": [
-		{
-			"name": "default",
-			"preGenerateCommands": [
-				"echo \"Please specify a build configuration (see 'dub build --print-configs')\"",
-				"exit 1"
-			],
-			"targetName": "/dev/null",
-			"targetType": "none"
-		},
-		{
-			"name": "offline-model",
-			"targetName": "offline-model",
-			"targetType": "executable",
-			"versions": [
-				"offline_model"
-			]
-		},
-		{
-			"name": "online-model",
-			"targetName": "online-model",
-			"targetType": "executable",
-			"versions": [
-				"online_model"
-			]
-		}
-	],
 	"copyright": "Copyright © 2021, sarkadicsa",
 	"dependencies": {
 		"asdf": "~>0.7.5",
@@ -38,5 +11,5 @@
 	},
 	"description": "A minimal D application.",
 	"license": "AGPLv3",
-	"name": "compare_fw"
+	"name": "offline-model"
 }

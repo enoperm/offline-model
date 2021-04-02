@@ -1,4 +1,4 @@
-module errors;
+module model.errors;
 
 import std.traits;
 import std.range;

@@ -1,12 +1,74 @@
-module model.offline;
-public import model.common;
+module model.partitioning;
 
 import std.range;
+import std.algorithm;
+import std.random;
 
 import optional;
-import mir.ndslice;
 
-import errors;
+
+public:
+@safe:
+
+struct Queue {
+immutable {
+    ulong lower;
+    ulong upper;
+}
+
+    string toString() const {
+        import std.string: format;
+        return format!"[%2s, %2s)"(this.lower, this.upper);
+    }
+
+    version(none)
+    invariant {
+        import std.string: format;
+        assert(lower < upper, format!`[%s, %s)`(lower, upper));
+    }
+}
+
+struct ModelContext {
+public:
+    size_t queueCount;
+    double[] rankDistribution;
+
+    invariant {
+        assert(rankDistribution.length == queueCount);
+        assert(queueCount > 0);
+    }
+}
+
+auto lookup(const(Queue[]) queues, const(ulong) rank)
+in(queues.length > 0)
+in(queues.front.lower == 0)
+out(index; index.empty || index.front < queues.length && index.front >= 0)
+out(index; index.empty || queues[index.front].lower <= rank && queues[index.front].upper > rank)
+{
+    foreach(i, const q; queues) if(q.lower <= rank && q.upper > rank) {
+        return some(i);
+    }
+    return no!size_t;
+}
+
+@("queue lookup returns no index when no existing queue could accept the packet")
+unittest
+{
+    auto queues = [Queue(0,2), Queue(2, 8)];
+    assert(queues.lookup(10).empty);
+}
+
+@("queue lookup returns expected indices")
+unittest
+{
+    import std.algorithm: map;
+    auto queues = [Queue(0,2), Queue(2, 8)];
+    auto expected = [0, 0, 1, 1, 1, 1, 1, 1];
+    auto got = iota(8).map!(p => queues.lookup(p)).array;
+
+    assert(expected == got);
+}
+import model.errors;
 
 public:
 @safe pure:
@@ -23,6 +85,8 @@ out(w; w >= 0)
 }
 
 struct ErrorGraph {
+import mir.ndslice;
+
 public alias Link = Optional!double;
 
 private:
@@ -66,6 +130,7 @@ public:
 }
 
 auto from(ErrorGraph g, ulong node) {
+    import mir.ndslice: byDim, Slice, mir_slice_kind;
     static struct PathFrom {
         Slice!(ErrorGraph.Link*, 1, mir_slice_kind.universal) outgoingEdges;
 
@@ -87,6 +152,7 @@ unittest {
     import std.algorithm: equal;
     import core.exception: AssertError;
     import mir.math.sum: sum;
+    import mir.ndslice: byDim;
 
     ErrorDelegate u =
         partitioning =>

@@ -14,11 +14,11 @@ dub test
 Building and running:
 ```sh
 dub build
-./compare_fw weight[,weight]* number-of-queues [simulated-packet-count]
+./offline-model weight[,weight]* number-of-queues 
 ```
 
 Alternatively, build and run in the same step while editing
 to ensure you always observe the output of the current version of the code:
 ```sh
-dub run -- weight[,weight]* number-of-queues [simulated-packet-count]
+dub run -- weight[,weight]* number-of-queues
 ```

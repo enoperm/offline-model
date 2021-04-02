@@ -3,7 +3,6 @@ docs.json
 __dummy.html
 docs/
 /offline-model
-/online-model
 *.so
 *.dylib
 *.dll

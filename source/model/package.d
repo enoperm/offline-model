@@ -1,4 +1,4 @@
 module model;
 
-public import model.offline;
-public import model.online;
+public import model.errors;
+public import model.partitioning;
