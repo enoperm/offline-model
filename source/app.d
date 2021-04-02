@@ -78,24 +78,25 @@ void solve(ModelContext context) {
         minMaxValues[i] = u(minPartitions[i]);
     }}
 
-    // TODO: make it easier to process output. maybe emit JSON?
-    static foreach(i, efn; errors) {{
-        writefln!("-----------------------\n"
-                ~ "error function %s // %s\n"
-                ~ "    selected partitioning: %s\n"
-                ~ "    probability of packets hitting each queue: %s\n"
-                ~ "    estimated error per queue: %s\n"
-                ~ "    estimated total error: %s\n")(
+    ModelOutput report;
+    static foreach(i, efn; errors) with(report) {
+        name = errorNames[i];
+        bounds = minPartitions[i][1..$].map!(q => q.lower.to!ulong).array;
+        perQueueErrors = minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])).array;
+        perQueueProbablities =
+            minPartitions[i]
+                .map!(q => iota(q.lower, q.upper)
+                    .map!(p => context.rankDistribution[p])
+                    .sum
+                ).array;
+        import asdf: serializeToJson;
+        stdout.writeln(report.serializeToJson);
+    }
+}
 
-                    i, errorNames[i],
-                    minPartitions[i].map!(q => q.toString).join('~'),
-                    minPartitions[i].map!(q =>
-                        iota(q.lower, q.upper)
-                        .map!(p => context.rankDistribution[p])
-                        .sum
-                    ),
-                    minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])),
-                    minMaxValues[i]
-        );
-    }}
+struct ModelOutput {
+    string name;
+    ulong[] bounds;
+    double[] perQueueProbablities;
+    double[] perQueueErrors;
 }
