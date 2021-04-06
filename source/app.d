@@ -81,7 +81,7 @@ void solve(ModelContext context) {
     ModelOutput report;
     static foreach(i, efn; errors) with(report) {
         name = errorNames[i];
-        bounds = minPartitions[i][1..$].map!(q => q.lower.to!ulong).array;
+        bounds = minPartitions[i].map!(q => q.lower.to!ulong).array;
         perQueueErrors = minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])).array;
         perQueueProbablities =
             minPartitions[i]
