@@ -31,16 +31,16 @@ static:
 
     @error
     auto exact(const(Queue) queue, const double[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+        auto P_i = rank_probabilities[queue.lower .. queue.upper].sum;
         return
             iota(queue.lower, queue.upper)
-            .map!((a) {
+            .map!((a) =>
                 // avoid division by zero if no packets are likely to arrive
-                auto P_i = rank_probabilities[queue.lower .. queue.upper].sum;
-                return P_i == 0 ? 0 :
+                P_i == 0 ? 0 :
                     iota(a + 1, queue.upper)
                     .map!(b => rank_probabilities[a] * rank_probabilities[b] * (b - a))
-                    .sum / P_i;
-            })
+                    .sum / P_i
+            )
             .fold!((a, b) => acc(a, b));
     }
 }

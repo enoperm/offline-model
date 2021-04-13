@@ -21,7 +21,6 @@ immutable {
         return format!"[%2s, %2s)"(this.lower, this.upper);
     }
 
-    version(none)
     invariant {
         import std.string: format;
         assert(lower < upper, format!`[%s, %s)`(lower, upper));
