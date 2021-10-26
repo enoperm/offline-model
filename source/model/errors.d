@@ -43,6 +43,11 @@ static:
             )
             .fold!((a, b) => acc(a, b));
     }
+
+    @error
+    auto mass_only(const(Queue) queue, const double[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+        return rank_probabilities[queue.lower .. queue.upper].sum;
+    }
 }
 
 private {
