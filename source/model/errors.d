@@ -9,9 +9,9 @@ import model;
 
 public:
 
-alias ErrorFunction = double function(const(double[]) rank_probabilities, const(Queue[]) partitioning) pure;
-alias ErrorDelegate = double delegate(const(Queue[]) partitioning) pure;
-alias ErrorAccumulatorFunction = double function(double, double) @safe pure;
+alias ErrorFunction = real function(const(real[]) rank_probabilities, const(Queue[]) partitioning) pure;
+alias ErrorDelegate = real delegate(const(Queue[]) partitioning) pure;
+alias ErrorAccumulatorFunction = real function(real, real) @safe pure;
 
 private enum error;
 
@@ -23,14 +23,14 @@ enum ErrorKind {
 private struct ErrorFuns {
 static:
     @error
-    auto upper_estimate(const(Queue) q, const double[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+    auto upper_estimate(const(Queue) q, const real[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
         cast(void)rank_probabilities;
         cast(void)acc;
         return rank_probabilities[q.lower .. q.upper].sum * q.width / 2;
     }
 
     @error
-    auto exact(const(Queue) queue, const double[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+    auto exact(const(Queue) queue, const real[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
         auto P_i = rank_probabilities[queue.lower .. queue.upper].sum;
         return
             iota(queue.lower, queue.upper)
@@ -45,7 +45,24 @@ static:
     }
 
     @error
-    auto mass_only(const(Queue) queue, const double[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+    auto inversion_count(const(Queue) queue, const real[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
+        import std.conv: to;
+        auto P_i = rank_probabilities[queue.lower .. queue.upper].map!(to!real).sum;
+
+        return
+            iota(queue.lower, queue.upper)
+            .map!((a) =>
+                // avoid division by zero if no packets are likely to arrive
+                P_i == 0 ? 0 :
+                    iota(a + 1, queue.upper)
+                    .map!(b => rank_probabilities[a] * rank_probabilities[b])
+                    .sum / (10_000 * P_i ^^ P_i)
+            )
+            .fold!((a, b) => acc(a, b));
+    }
+
+    @error
+    auto mass_only(const(Queue) queue, const real[] rank_probabilities, ErrorAccumulatorFunction acc) @safe pure {
         return rank_probabilities[queue.lower .. queue.upper].sum;
     }
 }
@@ -57,7 +74,7 @@ private {
         enum acc = accumulator(Kind);
         mixin(q{
             @(%s)
-            auto efn(const(double[]) rank_probabilities, const(Queue[]) partitioning) {
+            auto efn(const(real[]) rank_probabilities, const(Queue[]) partitioning) {
                 return
                     partitioning
                     .map!(q => U(q, rank_probabilities, acc))
@@ -89,7 +106,7 @@ static @safe pure:
         static foreach(kind; EnumMembers!ErrorKind) {
             @(kind)
             mixin(q{
-                auto %s(const(double[]) rank_probabilities, const(Queue[]) partitioning) {
+                auto %s(const(real[]) rank_probabilities, const(Queue[]) partitioning) {
                     return efn!(fun, kind)(rank_probabilities, partitioning);
                 }
             }.format(efn_name!(fun, kind)));

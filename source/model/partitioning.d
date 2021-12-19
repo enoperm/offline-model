@@ -30,7 +30,7 @@ immutable {
 struct ModelContext {
 public:
     size_t queueCount;
-    double[] rankDistribution;
+    real[] rankDistribution;
 
     invariant {
         assert(rankDistribution.length == queueCount);
@@ -72,7 +72,7 @@ import model.errors;
 public:
 @safe pure:
 
-ErrorDelegate withProbabilities(ErrorFunction efn, double[] rank_probabilities) {
+ErrorDelegate withProbabilities(ErrorFunction efn, real[] rank_probabilities) {
     return partitioning => efn(rank_probabilities, partitioning);
 }
 
@@ -86,7 +86,7 @@ out(w; w >= 0)
 struct ErrorGraph {
 import mir.ndslice;
 
-public alias Link = Optional!double;
+public alias Link = Optional!real;
 
 private:
     Slice!(Link*, 2) adjacencyMatrix;
@@ -99,7 +99,7 @@ public:
                 pos[1] < pos[0] ?
                     this.adjacencyMatrix[pos] = fn([Queue(pos[1], pos[0])]) :
 
-                    no!double
+                    no!real
             );
     }
 
@@ -156,7 +156,7 @@ unittest {
     ErrorDelegate u =
         partitioning =>
             partitioning
-            .map!(q => q.width.to!double)
+            .map!(q => q.width.to!real)
             .sum;
 
     auto eg = ErrorGraph(4, u);
@@ -164,10 +164,10 @@ unittest {
         eg.adjacencyMatrix
         .byDim!1
         .equal([
-            [no!double,  some(0.0),  some(1.0),  some(2.0),  some(3.0)],
-            [no!double,  no!double,  some(0.0),  some(1.0),  some(2.0)],
-            [no!double,  no!double,  no!double,  some(0.0),  some(1.0)],
-            [no!double,  no!double,  no!double,  no!double,  some(0.0)],
+            [no!real,  some(0.0),  some(1.0),  some(2.0),  some(3.0)],
+            [no!real,  no!real,  some(0.0),  some(1.0),  some(2.0)],
+            [no!real,  no!real,  no!real,  some(0.0),  some(1.0)],
+            [no!real,  no!real,  no!real,  no!real,  some(0.0)],
         ])
     );
 }
@@ -183,21 +183,21 @@ unittest {
     ErrorDelegate u =
         partitioning =>
             partitioning
-            .map!(q => q.width.to!double)
+            .map!(q => q.width.to!real)
             .sum;
 
     auto eg = ErrorGraph(4, u);
 
     auto pathsFromZero = eg.from(0);
-    assert(pathsFromZero.to(0) == no!double);
+    assert(pathsFromZero.to(0) == no!real);
     assert(pathsFromZero.to(1) == some(0.0));
     assert(pathsFromZero.to(2) == some(1.0));
     assert(pathsFromZero.to(3) == some(2.0));
     assert(pathsFromZero.to(4) == some(3.0));
 
     auto pathsFromOne = eg.from(1);
-    assert(pathsFromOne.to(0) == no!double);
-    assert(pathsFromOne.to(1) == no!double);
+    assert(pathsFromOne.to(0) == no!real);
+    assert(pathsFromOne.to(1) == no!real);
     assert(pathsFromOne.to(2) == some(0.0));
     assert(pathsFromOne.to(3) == some(1.0));
     assert(pathsFromOne.to(4) == some(2.0));
@@ -217,11 +217,11 @@ in(queueCount > 0, "zero queues?")
     const k = g.adjacencyMatrix.shape[0];
     queueCount = min(k - 1, queueCount);
 
-    auto distance = new double[][](k, k);
+    auto distance = new real[][](k, k);
     Optional!size_t[][] preceeding = new Optional!size_t[][](k, k);
 
     preceeding.each!((ref dv) => dv[] = no!size_t);
-    distance.each!((ref dv) => {dv[] = double.infinity; dv[0] = 0;}());
+    distance.each!((ref dv) { dv[] = real.infinity; dv[0] = 0; });
     auto zero = g.from(0);
     foreach(di, ref d; distance[1][1..$]) {
         d = zero.to(1 + di).front;
@@ -253,7 +253,7 @@ in(queueCount > 0, "zero queues?")
     size_t curr = k - 1;
     size_t step = queueCount;
     while(curr > 0) {
-        assert(distance[step][curr] < double.infinity);
+        assert(distance[step][curr] < real.infinity);
 
         path ~= curr;
         curr = preceeding[step][curr].front;

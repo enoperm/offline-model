@@ -35,7 +35,7 @@ int main(string[] args) {
     }
 
     auto total_weight = sum(relative_weights);
-    auto rank_probabilities = relative_weights.map!(w => w.to!double / total_weight).array;
+    auto rank_probabilities = relative_weights.map!(w => w.to!double / total_weight).map!(to!real).array;
     auto queue_count = args[2].to!ulong;
 
     import model: ModelContext;
@@ -82,13 +82,13 @@ void solve(ModelContext context) {
     static foreach(i, efn; errors) with(report) {
         name = errorNames[i];
         bounds = minPartitions[i].map!(q => q.lower.to!ulong).array;
-        perQueueErrors = minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])).array;
+        perQueueErrors = minPartitions[i].map!(queue => efn(context.rankDistribution, [queue])).map!(to!double).array;
         perQueueProbablities =
             minPartitions[i]
                 .map!(q => iota(q.lower, q.upper)
                     .map!(p => context.rankDistribution[p])
                     .sum
-                ).array;
+                ).map!(to!double).array;
         import asdf: serializeToJson;
         stdout.writeln(report.serializeToJson);
     }
